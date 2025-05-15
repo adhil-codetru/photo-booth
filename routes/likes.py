@@ -47,6 +47,6 @@ def unlike_photo(photo_id: int, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/{photo_id}", response_model=LikeCountResponse)
-def get_photo_likes(photo_id: int, db: Session = Depends(get_db)):
+def get_photo_likes(photo_id: int, db: Session = Depends(get_db) , current_user : User = Depends(get_current_user)):
     count = db.query(Like).filter(Like.photo_id == photo_id).count()
     return {"photo_id": photo_id, "like_count": count}

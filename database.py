@@ -3,7 +3,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from settings import settings
-
 Base = declarative_base()
 
 # Detect if we are running in a testing environment

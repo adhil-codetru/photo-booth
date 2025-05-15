@@ -5,7 +5,7 @@ from PIL import Image
 from torchvision import transforms
 from transformers import BlipProcessor, BlipForConditionalGeneration, CLIPProcessor, CLIPModel
 import os
-
+from schemas.ai_validation import ClassificationResult , DescriptionResult
 # Initialize once for performance
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
@@ -32,11 +32,13 @@ def classify_image(image_path: str) -> str:
     probs = logits_per_image.softmax(dim=1)
 
     predicted_index = torch.argmax(probs, dim=1).item()
-    return CATEGORIES[predicted_index]
+    validated_category = ClassificationResult(category=CATEGORIES[predicted_index])
+    return validated_category
 
 def describe_image(image_path: str) -> str:
     image = Image.open(image_path).convert("RGB")
     inputs = blip_processor(image, return_tensors="pt").to(device)
     out = blip_model.generate(**inputs)
     description = blip_processor.decode(out[0], skip_special_tokens=True)
-    return description
+    validated_description = DescriptionResult(description=description)
+    return validated_description

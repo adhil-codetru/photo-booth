@@ -5,12 +5,15 @@ from fastapi import HTTPException, Depends, Security, status
 from sqlalchemy.orm import Session
 from models import User
 from dependencies import get_db
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Secret key - in production, this should be in environment variables
-SECRET_KEY = "your_super_secret_key"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -49,10 +52,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         )
     
     username = payload.get("sub")
+    # role = payload.get("role")
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    return user
+    return user 

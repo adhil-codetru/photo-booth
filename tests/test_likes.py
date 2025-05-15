@@ -65,7 +65,7 @@ def test_unlike_photo_not_liked(client, auth_headers, photo_to_like):
 
 def test_get_like_count(client, auth_headers, photo_to_like):
     client.post(f"/likes/{photo_to_like.photo_id}", headers=auth_headers)
-    response = client.get(f"/likes/{photo_to_like.photo_id}")
+    response = client.get(f"/likes/{photo_to_like.photo_id}" , headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["photo_id"] == photo_to_like.photo_id

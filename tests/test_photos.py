@@ -149,16 +149,16 @@ def test_upload_photo_as_photographer(mock_describe, mock_classify, client, auth
     if os.path.exists(expected_path):
         os.remove(expected_path)
 
-def test_view_photo(client, test_photo):
+def test_view_photo(client, test_photo ,auth_headers):
     """Test viewing a photo"""
-    response = client.get(f"/photos/{test_photo.photo_id}/view")
+    response = client.get(f"/photos/{test_photo.photo_id}/view" , headers=auth_headers['photographer'])
     assert response.status_code == 200
     # Verify it returns an image
     assert response.headers["content-type"] == "image/jpeg"
 
-def test_list_photos(client, test_photo):
+def test_list_photos(client, test_photo , auth_headers):
     """Test listing photos"""
-    response = client.get("/photos/")
+    response = client.get("/photos/",headers=auth_headers["photographer"])
     assert response.status_code == 200
     photos = response.json()
     assert any(p["photo_id"] == test_photo.photo_id for p in photos)

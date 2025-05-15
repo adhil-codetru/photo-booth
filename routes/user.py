@@ -33,11 +33,11 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.get("/", response_model=List[UserOut])
-def get_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def get_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db) , current_user : User = Depends(get_current_user)):
     return db.query(User).offset(skip).limit(limit).all()
 
 @router.get("/{user_id}", response_model=UserOut)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db) , current_user : User = Depends(get_current_user)):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

@@ -24,18 +24,14 @@ app = FastAPI()
 if settings.ENV != "testing":
     models.Base.metadata.create_all(bind=engine)
 # Routes
+app.include_router(user_router) # CRUD OPERATIONS ON USER
+app.include_router(photo_router) # CRUD OPERATIONS ON PHOTOS
+app.include_router(comment_router) # CRUD OPERATIONS ON COMMENTS
+app.include_router(follow_router) # ROUTES FOP FOLLOW AND UNFOLLOW
+app.include_router(ratings_router) # CRUD OPERATIONS ON PHOTO AND PHOTOGRAPHER RATING
+app.include_router(likes_router) # LIKE AND DISLIKE PHOTOS
+app.include_router(feed_router) # GET USER FEED
 
-app.include_router(user_router)
-app.include_router(photo_router)
-app.include_router(comment_router)
-app.include_router(follow_router)
-app.include_router(ratings_router)
-app.include_router(likes_router)
-app.include_router(feed_router)
-
-@app.get('/')
-async def hello():
-    return {"message": "Hello, world!"}
 
 
 @app.post("/token")
@@ -51,6 +47,3 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/me", response_model=UserOut)
-def read_current_user(current_user: User = Depends(get_current_user)):
-    return current_user

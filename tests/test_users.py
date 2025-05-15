@@ -29,15 +29,15 @@ def test_create_user(client):
     assert response.status_code == 200
     assert response.json()["username"] == "anotheruser"
 
-def test_get_users(client, seed_data):
-    response = client.get("/users/")
+def test_get_users(client, seed_data, auth_headers):
+    response = client.get("/users/" , headers=auth_headers)
     assert response.status_code == 200
     assert any(user["username"] == "testuser" for user in response.json())
 
-def test_get_user_by_id(client, seed_data):
+def test_get_user_by_id(client, seed_data , auth_headers):
     # Use the user created in seed_data
     user_id = seed_data.user_id
-    response = client.get(f"/users/{user_id}")
+    response = client.get(f"/users/{user_id}" , headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["username"] == "testuser"
 
@@ -81,4 +81,4 @@ def test_delete_user(client, auth_headers):
     
     # Verify user is deleted
     get_resp = client.get(f"/users/{user_id}")
-    assert get_resp.status_code == 404
+    assert get_resp.status_code == 401

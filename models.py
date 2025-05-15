@@ -1,14 +1,22 @@
-#models.py
-from sqlalchemy import Column, ForeignKey, Integer, String, JSON , UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableList
 from database import Base
+
+
+class SharePhoto(Base):
+    __tablename__ = 'share_photos'
+
+    photo_id = Column(Integer, ForeignKey('photos.photo_id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True, nullable=False)
+
 
 class Follower(Base):
     __tablename__ = 'followers'
 
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True)
     follower_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True)
+
 
 class Rating(Base):
     __tablename__ = 'ratings'
@@ -26,7 +34,6 @@ class Rating(Base):
     )
 
 
-
 class Like(Base):
     __tablename__ = 'likes'
 
@@ -40,19 +47,17 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String, index=True, nullable=False, unique=True)
     password = Column(String, nullable=False)
-    role = Column(String, nullable=False, default='User')
+    role = Column(String, nullable=False, default='User')  
     rating = Column(Integer, default=0)
+
 
     photos = relationship("Photo", back_populates="owner", cascade="all, delete-orphan")
     followers = relationship("Follower", foreign_keys=[Follower.user_id], cascade="all, delete")
     following = relationship("Follower", foreign_keys=[Follower.follower_id], cascade="all, delete")
-    
-    # Disambiguated relationship
     ratings = relationship("Rating", foreign_keys=[Rating.user_id], cascade="all, delete")
     received_ratings = relationship("Rating", foreign_keys=[Rating.photographer_id], cascade="all, delete")
-    
     likes = relationship("Like", cascade="all, delete")
-
+    shared_photos = relationship("SharePhoto", foreign_keys=[SharePhoto.user_id], cascade="all, delete")
 
 
 class Photo(Base):
@@ -65,6 +70,9 @@ class Photo(Base):
     tags = Column(String, default="")
     description = Column(String, default="")
     file_path = Column(String, nullable=False)
-    
+
+
     owner = relationship("User", back_populates="photos")
     likes = relationship("Like", cascade="all, delete")
+    ratings = relationship("Rating", foreign_keys=[Rating.photo_id], cascade="all, delete")
+    shared_with = relationship("SharePhoto", foreign_keys=[SharePhoto.photo_id], cascade="all, delete")

@@ -4,11 +4,9 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
-
-from models import Photo
 from dependencies import get_db
 from auth import get_current_user
-from models import User
+from models import User , Photo , SharePhoto , Follower
 from schemas.photo import PhotoUploadResponse, PhotoListItem
 from services.ai_utils import classify_image, describe_image
 from settings import UPLOAD_DIR
@@ -17,6 +15,49 @@ router = APIRouter(
     prefix="/photos",
     tags=["Photos"]
 )
+
+@router.post('/share/{photo_id}/{user_id}')
+def share_photo(
+    photo_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    photo = db.query(Photo).filter(Photo.photo_id == photo_id).first()
+    
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    if photo.owner_id != current_user.user_id:
+        raise HTTPException(status_code=401, detail="A user can only share their own photos")
+    
+    if current_user.role != 'Photographer':
+        raise HTTPException(status_code=401, detail="Only Photographers can share photos")
+
+    shared_photo = SharePhoto(photo_id=photo_id, user_id=user_id)
+
+    db.add(shared_photo)  
+    db.commit()          
+    return {"message": "Photo shared successfully", "shared_with_user_id": user_id}
+
+@router.delete('/share/{photo_id}/{user_id}')
+def remove_share(
+    photo_id : int,
+    user_id: int,
+    db : Session = Depends(get_db),
+    current_user : User = Depends(get_current_user)
+):
+    photo = db.query(Photo).filter(Photo.photo_id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404 , detail="Photo not found")
+    if photo.owner_id != current_user.user_id:
+        raise HTTPException(status_code=403 , detail="You do not have accesss")
+    shared = db.query(SharePhoto).filter(SharePhoto.photo_id == photo_id , SharePhoto.user_id == user_id).first()
+    if not shared:
+        raise HTTPException(status_code=400 , detail="No shared link present")
+    db.delete(shared)
+    db.commit()
+    return {"message" : "Photo sharing revoked succesfully"}
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED, response_model=PhotoUploadResponse)
 def upload_photo(
@@ -35,12 +76,12 @@ def upload_photo(
     new_photo = Photo(
         owner_id=current_user.user_id,
         comments=[],
-        tags="",  # temporary
-        description="",  # temporary
-        file_path=""  # temporary to satisfy NOT NULL
+        tags="",  
+        description="",  
+        file_path=""  #
     )
     db.add(new_photo)
-    db.flush()  # Assigns photo_id without committing
+    db.flush()  
 
     # Construct unique file name and path
     file_name = f"{new_photo.photo_id}{file_ext}"
@@ -59,8 +100,8 @@ def upload_photo(
 
     # Update photo record with real data
     new_photo.file_path = file_path
-    new_photo.tags = predicted_tag
-    new_photo.description = auto_description
+    new_photo.tags = predicted_tag.category
+    new_photo.description = auto_description.description
 
     db.commit()
     db.refresh(new_photo)
@@ -69,22 +110,31 @@ def upload_photo(
 
 
 @router.get("/{photo_id}/view")
-def view_photo(photo_id: int, db: Session = Depends(get_db)):
+def view_photo(photo_id: int, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
     photo = db.query(Photo).filter(Photo.photo_id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
-
-    filename = f"{photo_id}.jpg"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-
+    is_owner = photo.owner_id == current_user.user_id
+    is_shared = db.query(SharePhoto).filter(
+        SharePhoto.photo_id == photo_id,
+        SharePhoto.user_id == current_user.user_id
+    ).first()
+    is_following = db.query(Follower).filter(
+    Follower.follower_id == current_user.user_id,
+    Follower.user_id == photo.owner_id).first()
+    if not is_owner and not is_shared and not is_following:
+        raise HTTPException(status_code=403, detail="You do not have access to view the photo")
+    filepath = photo.file_path
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(filepath)
 
 @router.get("/", response_model=List[PhotoListItem])
-def list_photos(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    photos = db.query(Photo).offset(skip).limit(limit).all()
+def list_photos(skip: int = 0, limit: int = 10, db: Session = Depends(get_db) , current_user : User = Depends(get_current_user)):
+    if current_user.role != 'Photographer':
+        raise HTTPException(status_code=403 , detail="Only Photographers can view this route")
+    photos = db.query(Photo).filter(Photo.owner_id == current_user.user_id).offset(skip).limit(limit).all()
     photo_list = []
     for photo in photos:
         photo_dict = {
@@ -106,8 +156,8 @@ def delete_photo(photo_id: int, db: Session = Depends(get_db), current_user: Use
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found or not authorized")
 
-    filename = f"{photo_id}.jpg"
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    filepath = photo.file_path
+    
 
     if os.path.exists(filepath):
         os.remove(filepath)

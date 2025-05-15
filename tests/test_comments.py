@@ -38,8 +38,9 @@ def photo_with_comments(db: Session, comment_users):
     return photo
 
 
-def test_get_comments(client, photo_with_comments):
-    response = client.get(f"/comments/{photo_with_comments.photo_id}")
+def test_get_comments(client, photo_with_comments,comment_auth_headers):
+    response = client.get(f"/comments/{photo_with_comments.photo_id}",
+                          headers=comment_auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "comments" in data
@@ -75,8 +76,8 @@ def test_update_comment_unauthorized(client, photo_with_comments, comment_auth_h
         headers=comment_auth_headers,
         json={"new_comment": "Hacked"}
     )
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Not authorized to edit this comment"
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Your comment at that index does not exist"
 
 
 def test_delete_comment(client, photo_with_comments, comment_auth_headers):
