@@ -1,14 +1,16 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, JSON, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, UniqueConstraint , DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.mutable import MutableList
 from database import Base
-
+from datetime import datetime
 
 class SharePhoto(Base):
     __tablename__ = 'share_photos'
 
     photo_id = Column(Integer, ForeignKey('photos.photo_id', ondelete='CASCADE'), primary_key=True, nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    shared_at = Column(DateTime , default=datetime.utcnow)
+    expires_at = Column(DateTime , nullable = True)
 
 
 class Follower(Base):

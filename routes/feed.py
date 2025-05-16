@@ -16,7 +16,7 @@ def get_user_feed(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Step 1: Get photographers the user is following
+    # Get photographers the user is following
     followed_photographers_subq = (
         db.query(User.user_id)
         .join(Follower, Follower.user_id == User.user_id)
@@ -27,14 +27,15 @@ def get_user_feed(
         .subquery()
     )
 
-    # ⚠️ Fix: Wrap subquery in select() to avoid warning
+   
     followed_select = select(followed_photographers_subq)
 
-    # Step 2: Get their photos
+    #  Get their photos
     feed_photos_query = (
         db.query(
             Photo.photo_id,
             Photo.owner_id,
+            Photo.file_path,
             Photo.tags,
             Photo.description,
             Photo.average_rating,
@@ -42,13 +43,14 @@ def get_user_feed(
         )
         .outerjoin(Like, Like.photo_id == Photo.photo_id)
         .filter(Photo.owner_id.in_(followed_select))
-        .group_by(Photo.photo_id)
+        .group_by(Photo.photo_id,Photo.file_path)
     )
 
     feed_photos = [
         FeedPhoto(
             photo_id=row.photo_id,
             owner_id=row.owner_id,
+            file_path=row.file_path,
             tags=row.tags,
             description=row.description,
             average_rating=row.average_rating,
@@ -62,13 +64,14 @@ def get_user_feed(
         db.query(
             Photo.photo_id,
             Photo.owner_id,
+            Photo.file_path,
             Photo.tags,
             Photo.description,
             Photo.average_rating,
             func.count(Like.photo_id).label("like_count")
         )
         .join(Like, Like.photo_id == Photo.photo_id)
-        .group_by(Photo.photo_id)
+        .group_by(Photo.photo_id,Photo.file_path)
         .order_by(desc("like_count"), desc(Photo.photo_id))
         .limit(1)
         .first()
@@ -79,6 +82,7 @@ def get_user_feed(
         photo_of_day = FeedPhoto(
             photo_id=photo_of_day_query.photo_id,
             owner_id=photo_of_day_query.owner_id,
+            file_path=photo_of_day_query.file_path,
             tags=photo_of_day_query.tags,
             description=photo_of_day_query.description,
             average_rating=photo_of_day_query.average_rating,

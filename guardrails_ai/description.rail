@@ -1,0 +1,9 @@
+<rail version="0.1">
+<output>
+    <string name="description"
+            description="A clean, short description of the image"
+            format="valid_length"
+            max-length="200"
+            filters="profanity"/>
+</output>
+</rail>

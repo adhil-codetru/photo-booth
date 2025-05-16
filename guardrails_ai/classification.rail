@@ -1,0 +1,8 @@
+<rail version="0.1">
+<output>
+    <string name="category"
+            description="The image category"
+            format="valid_choices"
+            valid-choices='["portrait", "landscape", "wildlife", "architecture", "food", "sports", "fashion", "travel", "macro", "movies"]'/>
+</output>
+</rail>
